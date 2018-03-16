@@ -1,3 +1,4 @@
 ﻿  main.cpp
-  BoostrapServer.vcxproj -> c:\users\daniel\Source\Repos\AA2_P2P\x64\Debug\BoostrapServer.exe
-  BoostrapServer.vcxproj -> c:\users\daniel\Source\Repos\AA2_P2P\x64\Debug\BoostrapServer.pdb (Partial PDB)
+e:\yosm\documents\uni\3r\3r2sem\redes\aa2_p2p\boostrapserver\main.cpp(47): warning C4267: 'inicializando': conversión de 'size_t' a 'int'; posible pérdida de datos
+  BoostrapServer.vcxproj -> E:\Yosm\Documents\uni\3r\3r2sem\redes\AA2_P2P\x64\Debug\BoostrapServer.exe
+  BoostrapServer.vcxproj -> E:\Yosm\Documents\uni\3r\3r2sem\redes\AA2_P2P\x64\Debug\BoostrapServer.pdb (Partial PDB)

@@ -1,0 +1,6 @@
+﻿  main.cpp
+main.cpp(47): warning C4267: 'inicializando': conversión de 'size_t' a 'int'; posible pérdida de datos
+  Generando código
+  All 149 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Generación de código finalizada
+  BoostrapServer.vcxproj -> E:\Yosm\Documents\uni\3r\3r2sem\redes\AA2_P2P\x64\Release\BoostrapServer.exe
