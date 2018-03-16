@@ -2,6 +2,7 @@
 #include <SFML\Network.hpp>
 #include <string>
 #include <iostream>
+#include <list>
 
 /*
 struct Direccion { Port, IP  }
@@ -25,8 +26,67 @@ struct Direction
 	std::string ip;
 	int port;
 };
-
+struct Player {
+	std::string name;
+	int score;
+	sf::TcpSocket* socket;
+};
 std::vector<Direction> awaitingPlayers;
+std::vector<Player*> players;
+Player* globalPlayerPtr;
+
+enum commands { NOM, CON, DEN, INF};
+
+void receiveFunction(sf::TcpSocket* socket, bool* _connected) {
+	char receiveBuffer[2000];
+	std::size_t _received;
+	while (*_connected) {
+		sf::Packet packet;
+		sf::Socket::Status rSt = socket->receive(packet);
+		if (rSt == sf::Socket::Status::Done/*_received > 0*/) {
+
+			std::string str;
+			std::string str2;
+			int integer;
+			int command;
+			int pixelsSize;
+			sf::Socket::Status st;
+			sf::Packet packet;
+			st = socket->receive(packet);
+			if (st == sf::Socket::Done){
+
+				if (packet >> command) {
+					std::string strRec;
+					bool used;
+					sf::Packet newPacket;
+
+					switch (command) {
+					case commands::NOM:
+						//compara con el resto de players si ya está usado o no
+						packet >> strRec;
+						for (int i = 0; i < players.size(); i++) {
+							if (strcmp(players[i]->name.c_str(), strRec.c_str()) == 0) {
+								used = true;
+							}
+						}
+						//si no está usado --> send CON y añade, si lo está --> send DEN
+						if (!used) {
+							globalPlayerPtr->name = strRec;
+							newPacket << commands::CON;
+							socket->send(newPacket);
+							//aqui va lo de enviar las infos
+						}
+						else {
+							newPacket << commands::DEN;
+							socket->send(newPacket);
+						}
+						break;
+					}
+				}
+			}
+		}
+	}
+}
 
 void main() {
 	awaitingPlayers = std::vector<Direction>();
