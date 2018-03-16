@@ -1,4 +1,6 @@
 #pragma once
+#include <SFML\Graphics.hpp>
+#include <SFML\Network.hpp>
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -6,6 +8,12 @@
 struct Player {
 	std::string name;
 	int score;
+	sf::TcpSocket* socket;
+};
+struct Direction
+{
+	std::string ip;
+	int port;
 };
 class ScoreBoard {
 

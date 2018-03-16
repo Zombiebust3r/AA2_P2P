@@ -1,3 +1,13 @@
-﻿  scoreboard.cpp
-  AA2_P2P.vcxproj -> E:\Yosm\Documents\uni\3r\3r2sem\redes\AA2_P2P\x64\Debug\AA2_P2P.exe
-  AA2_P2P.vcxproj -> E:\Yosm\Documents\uni\3r\3r2sem\redes\AA2_P2P\x64\Debug\AA2_P2P.pdb (Partial PDB)
+﻿  main.cpp
+c:\users\dpeco\documents\github\aa2_p2p\aa2_p2p\circle.h(21): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+c:\users\dpeco\documents\github\aa2_p2p\aa2_p2p\circle.h(22): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+c:\users\dpeco\documents\github\aa2_p2p\aa2_p2p\circle.h(24): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+c:\users\dpeco\documents\github\aa2_p2p\aa2_p2p\circle.h(31): warning C4244: 'argument': conversion from 'const float' to 'int', possible loss of data
+c:\users\dpeco\documents\github\aa2_p2p\aa2_p2p\main.cpp(92): warning C4101: 'receiveBuffer': unreferenced local variable
+c:\users\dpeco\documents\github\aa2_p2p\aa2_p2p\main.cpp(93): warning C4101: '_received': unreferenced local variable
+c:\users\dpeco\documents\github\aa2_p2p\aa2_p2p\main.cpp(148): warning C4101: 'tempint': unreferenced local variable
+c:\users\dpeco\documents\github\aa2_p2p\aa2_p2p\main.cpp(455): warning C4244: 'argument': conversion from '::size_t' to 'float', possible loss of data
+c:\users\dpeco\documents\github\aa2_p2p\aa2_p2p\main.cpp(496): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+c:\users\dpeco\documents\github\aa2_p2p\aa2_p2p\chronometer.h(143): warning C4715: 'sftools::Chronometer::getElapsedTime': not all control paths return a value
+  AA2_P2P.vcxproj -> C:\Users\dpeco\Documents\GitHub\AA2_P2P\x64\Debug\AA2_P2P.exe
+  AA2_P2P.vcxproj -> C:\Users\dpeco\Documents\GitHub\AA2_P2P\x64\Debug\AA2_P2P.pdb (Partial PDB)

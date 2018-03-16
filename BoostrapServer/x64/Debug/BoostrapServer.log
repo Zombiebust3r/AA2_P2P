@@ -1,4 +1,4 @@
 ﻿  main.cpp
-e:\yosm\documents\uni\3r\3r2sem\redes\aa2_p2p\boostrapserver\main.cpp(47): warning C4267: 'inicializando': conversión de 'size_t' a 'int'; posible pérdida de datos
-  BoostrapServer.vcxproj -> E:\Yosm\Documents\uni\3r\3r2sem\redes\AA2_P2P\x64\Debug\BoostrapServer.exe
-  BoostrapServer.vcxproj -> E:\Yosm\Documents\uni\3r\3r2sem\redes\AA2_P2P\x64\Debug\BoostrapServer.pdb (Partial PDB)
+c:\users\dpeco\documents\github\aa2_p2p\boostrapserver\main.cpp(117): warning C4129: ' ': unrecognized character escape sequence
+  BoostrapServer.vcxproj -> C:\Users\dpeco\Documents\GitHub\AA2_P2P\x64\Debug\BoostrapServer.exe
+  BoostrapServer.vcxproj -> C:\Users\dpeco\Documents\GitHub\AA2_P2P\x64\Debug\BoostrapServer.pdb (Partial PDB)

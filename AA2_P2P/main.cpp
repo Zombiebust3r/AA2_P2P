@@ -1,5 +1,3 @@
-#include <SFML\Graphics.hpp>
-#include <SFML\Network.hpp>
 #include <cstring>
 #include <mutex>
 #include <thread>
@@ -11,6 +9,7 @@
 #define SET 0
 #define GET 1
 
+std::vector<Player*> players;
 std::vector<std::string> aMensajes;
 std::mutex myMutex;
 bool connected = false;
@@ -213,11 +212,10 @@ void receiveFunction(sf::TcpSocket* socket, bool* _connected) {
 }
 
 void blockeComunication() {
-
-	receiveThread = std::thread(receiveFunction, &socket, &connected);
-
+	
 	while (!done && (st == sf::Socket::Status::Done) && connected)
 	{
+		Player* ownPlayer = new Player;
 		//name enter phase
 		while (!nameEntered) {
 			//hacer que el usuario escriba el nombre
@@ -229,9 +227,65 @@ void blockeComunication() {
 			newP << commands::NOM << namePlayer;
 			socket.send(newP);
 
+			sf::Packet receivePacket;
+			int command;
+			st = socket.receive(receivePacket);
+			if (st == sf::Socket::Status::Done) {
+
+				if (receivePacket >> command) {
+					switch (command) {
+					case commands::DEN:
+						std::cout << "The name is already in use" << std::endl;
+						nameReply = true;
+						break;
+					case commands::CON:
+						std::cout << "Your name has been saved" << std::endl;
+						nameEntered = true;
+						nameReply = true;
+						break;
+					}
+				}
+			}
+
 			nameReply = false;
 			while(!nameReply){} //espera a respuesta de server para cambiar este bool
 		}
+		//guardar otros peers
+		sf::Packet packet;
+		socket.receive(packet);
+		int numplayers;
+		packet >> numplayers;
+		std::cout << numplayers << " jugadores" << std::endl;
+		for (int i = 0; i < numplayers; i++) {
+			std::cout << "entro en este bonito for" << std::endl;
+			sf::Packet newPacket;
+			socket.receive(newPacket);
+			int command;
+			packet >> command;
+			std::cout << "He recibido un paquete de jugador con el comando: " << command;
+			if (command == INF) {
+				switch (command) {
+				case commands::INF:
+					Player* tempPlayer = new Player;
+
+					Direction tempDir;
+					sf::TcpSocket* tempSock = new sf::TcpSocket;
+					packet >> tempPlayer->name;
+					packet >> tempDir.ip;
+					packet >> tempDir.port;
+					std::cout << "Player #" << i << " IP: " << tempDir.ip << " PORT: " << tempDir.port << std::endl;
+
+					tempSock->connect(tempDir.ip, tempDir.port, sf::seconds(5.f));
+					tempPlayer->socket = tempSock;
+
+					players.push_back(tempPlayer);
+
+					break;
+				}
+			}
+		}
+		//autoguardarme
+		players.push_back(ownPlayer);
 
 		sf::Vector2i screenDimensions(800, 600);
 
@@ -443,7 +497,7 @@ void main() {
 	color = sf::Color(rand() % 255 + 0, rand() % 255 + 0, rand() % 255 + 0, 255);
 	st = sf::Socket::Status::Disconnected;
 	bool serv;
-	std::string serverMode;
+	std::string startPeer;
 
 	drawing = false;
 	doneDrawing = false;
@@ -451,11 +505,12 @@ void main() {
 	
 	chrono.resume();
 
-	std::cout << "Enter (c) for Client: ";
-	std::cin >> connectionType;
+	std::cout << "Enter (p) to peer or anything else to not to peer" << std::endl;
+	std::cin >> startPeer;
 
-	if (connectionType == 'c')
-	{
+	if (startPeer == "p") {
+		std::cout << "P pressed" << std::endl;
+		//conectarse al bootstrap server
 		serv = false;
 		do {
 			ticks++;
@@ -467,12 +522,104 @@ void main() {
 		mode = 'r';
 		windowName = "Client Chat Window";
 
+		Player* ownPlayer = new Player;
+
+		//name enter phase
+		while (!nameEntered) {
+			//hacer que el usuario escriba el nombre
+			std::string namePlayer;
+			std::cout << "Please enter your name: ";
+			std::cin >> namePlayer;
+			//enviar nombre
+			sf::Packet newP;
+			newP << commands::NOM << namePlayer;
+			socket.send(newP);
+
+			sf::Packet receivePacket;
+			int command;
+			//espera a que reciva algo o no
+			socket.receive(receivePacket);
+
+			if (receivePacket >> command) {
+				switch (command) {
+				case commands::DEN:
+					std::cout << "The name is already in use" << std::endl;
+					break;
+				case commands::CON:
+					std::cout << "Your name has been saved" << std::endl;
+					ownPlayer->name = namePlayer;
+					nameEntered = true;
+					break;
+				}
+			}
+		}
+		std::cout << "he pasado de la fase de nombre" << std::endl;
+		//guardar otros peers
+		sf::Packet packet;
+		socket.receive(packet);
+		int numplayers;
+		packet >> numplayers;
+		std::cout << numplayers << " jugador(es)" << std::endl;
+		for (int i = 0; i < numplayers; i++) {
+			sf::Packet newPacket;
+			socket.receive(newPacket);
+			int command;
+			newPacket >> command;
+			if (command == INF) {
+				Player* tempPlayer = new Player;
+
+				Direction tempDir;
+				sf::TcpSocket* tempSock = new sf::TcpSocket;
+				newPacket >> tempPlayer->name;
+				newPacket >> tempDir.ip;
+				newPacket >> tempDir.port;
+				std::cout << "Player #" << i << " IP: " << tempDir.ip << " PORT: " << tempDir.port << std::endl;
+
+				tempSock->connect(tempDir.ip, tempDir.port, sf::seconds(5.f));
+				//le enviamos nuestro nombre
+				newPacket.clear();
+				newPacket << commands::NOM << ownPlayer->name;
+				tempSock->send(newPacket);
+				tempPlayer->socket = tempSock;
+
+				players.push_back(tempPlayer);
+			}
+		}
+		std::cout << "me guardo" << std::endl;
+		//autoguardarme
+		players.push_back(ownPlayer);
+
+		//esperar al resto de jugadores
+		int tempPort = socket.getLocalPort();
+		socket.disconnect();
+		while (players.size() < 4) {
+			std::cout << "Esperando a un nuevo peer con puerto: " << tempPort << std::endl;
+			sf::TcpListener listener;
+			sf::TcpSocket* tempSock = new sf::TcpSocket;
+			Player* tempPlayer = new Player;
+			listener.listen(tempPort);
+			listener.accept(*tempSock);
+			//recibir nombre
+			sf::Packet packet;
+			tempSock->receive(packet);
+			int command;
+			if (packet >> command) {
+				if (command == NOM) packet >> tempPlayer->name;
+			}
+			tempPlayer->socket = tempSock;
+			players.push_back(tempPlayer);
+			std::cout << "Se ha conectado un nuevo peer " << tempSock->getRemotePort() << " "<< tempPlayer->name << std::endl;
+		}
+
+		if (st == sf::Socket::Status::Done) {
+			connected = true;
+			system("pause");
+			blockeComunication();
+		}
+
 	}
 
-	if (st == sf::Socket::Status::Done) {
-		connected = true;
-		blockeComunication();
-	}
+	
 
 	socket.disconnect();
 }
