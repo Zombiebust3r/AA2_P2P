@@ -50,6 +50,10 @@ bool nameEntered = false;
 bool nameReply = false;
 enum commands { NOM, DEN, CON, INF, MSG, IMG, WRD, GUD, BAD, WNU, WIN, DIS, END, RNK, RDY, TIM};
 
+void SendToRest(sf::Packet pack) {
+	//Aquí mandamos la info a todos menos a ti mismo.
+}
+
 Mode SetGetMode(int setOrGet, Mode mode) {
 	std::lock_guard<std::mutex> guard(myMutex);
 	//static Mode sMode = Mode::NOTHING;
@@ -100,6 +104,10 @@ void receiveFunction(sf::TcpSocket* socket, bool* _connected) {
 			int pixelsSize;
 			if (packet >> command) {
 				switch (command) {
+				case commands::RDY:																									//READY TODO
+					//CUANDO SE RECIBE SE FLAGUEA AL JUGADOR COMO READY EN EL STRUCT
+					//CUANDO TODOS SE HAN PUESTO A READY EMPIEZA LA PARTIDA: --> El primero de la lista debe decidir una palabra y mandar al resto un WNU con el número de letras. Esto empieza el ciclo de turnos.
+					break;
 				case commands::DEN:
 					std::cout << "The name is already in use" << std::endl;
 					nameReply = true;
@@ -118,8 +126,12 @@ void receiveFunction(sf::TcpSocket* socket, bool* _connected) {
 					addMessage("EL USUARIO: '" + str + "' SE HA UNIDO A LA PARTIDA, (USA EL COMANDO READY PARA EMPEZAR)");
 					break;
 				case commands::MSG:
-					packet >> str >> str2;
-					addMessage(str + str2);
+					packet >> str >> str2;																
+					if (SetGetMode(GET, Mode::NOTHING) == Mode::WAITINGANSWERS) {			//Si estoy dibujando (mirar mi estado) tengo que verificar si la palabra corresponde con la que dibujo. Mando lo correspondiente si acierta o no.
+						//COMPARAR PALABRA CON LA Mía
+						//AÑADIR MENSAJE CORRESPONDIENTE
+					}
+					else { addMessage(str + str2); }
 
 					break;
 				case commands::IMG:
@@ -144,13 +156,6 @@ void receiveFunction(sf::TcpSocket* socket, bool* _connected) {
 					//CREATE IMAGE THEN TEXTURE THEN SPRITE
 					screenshotImage.create(imgWidth, imgHeight, pixels);
 					std::cout << "IMAGE CREATED FROM ARRAY" << std::endl;
-					//tempTexture.create(imgWidth, imgHeight);
-					//std::cout << "TEXTURE SETTUP" << std::endl;
-					//screenshotTexture.loadFromImage(screenshotImage);
-					//std::cout << "TEXTURE COPIED FROM IMAGE" << std::endl;
-					//screenshotSprite.setTexture(screenshotTexture, true);
-					//std::cout << "SPRITE CREATED FROM TEXTURE" << std::endl;
-					//screenshotSprite.setPosition(0, 0);
 
 					SetGetMode(0, Mode::ANSWERING);
 					addMessage("COMIENZA EL TIEMPO DE ADIVINAR");
@@ -188,7 +193,10 @@ void receiveFunction(sf::TcpSocket* socket, bool* _connected) {
 					break;
 				case commands::TIM:
 					addMessage("SE HA ACABADO EL TIEMPO DE ADIVINAR");
-					SetGetMode(SET, Mode::NOTHING);
+					if (SetGetMode(GET, Mode::NOTHING) == Mode::WAITINGANSWERS) {									//PODEMOS PONER EN VEZ DE ESTO UNA VARIABLE BOOL yourTurn, SI ES TU TURNO ES TRUE SINO ES FALSE
+						//MANDAR LA PALABRA NUEVA AL SIGUIENTE QUE DEBE DIBUJAR Y AL RESTO (INCLUIDO A SI MISMO) EL NÚMERO DE LETRAS
+					}
+					else { SetGetMode(SET, Mode::NOTHING); }
 					break;
 				case commands::END:
 					//mensaje indicando el ganador de la partida, indicando su nombre
@@ -309,7 +317,7 @@ void blockeComunication() {
 						else if (strcmp(mensaje.c_str(), "ready") == 0) {
 							sf::Packet newPacket;
 							newPacket << commands::RDY;
-							socket.send(newPacket);
+							socket.send(newPacket);																				//MANDAR A TODOS
 						}
 						mensaje = "";
 					}
@@ -370,7 +378,7 @@ void blockeComunication() {
 				screenshotSprite.setPosition(0, 0);
 				//SEND IMAGE
 				std::cout << "IMAGE SENT AFTER DRAWING" << std::endl;
-				socket.send(imagePacket);
+				socket.send(imagePacket);																													//MANDAR A LOS OTROS 3 LA IMAGEN EN VEZ DE AL SERVIDOR
 				SetGetMode(0, Mode::WAITINGANSWERS);
 				addMessage("SE HA ACABADO EL TIEMPO DE DIBUJAR");
 				std::cout << "set waiting answers";
