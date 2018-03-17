@@ -1,20 +1,17 @@
 ﻿  main.cpp
-e:\yosm\documents\uni\3r\3r2sem\redes\aa2_p2p\aa2_p2p\circle.h(21): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-e:\yosm\documents\uni\3r\3r2sem\redes\aa2_p2p\aa2_p2p\circle.h(22): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-e:\yosm\documents\uni\3r\3r2sem\redes\aa2_p2p\aa2_p2p\circle.h(24): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-e:\yosm\documents\uni\3r\3r2sem\redes\aa2_p2p\aa2_p2p\circle.h(31): warning C4244: 'argumento': conversión de 'const float' a 'int'; posible pérdida de datos
-e:\yosm\documents\uni\3r\3r2sem\redes\aa2_p2p\aa2_p2p\main.cpp(147): warning C4267: 'inicializando': conversión de 'size_t' a 'int'; posible pérdida de datos
-e:\yosm\documents\uni\3r\3r2sem\redes\aa2_p2p\aa2_p2p\main.cpp(301): warning C4267: 'inicializando': conversión de 'size_t' a 'int'; posible pérdida de datos
-e:\yosm\documents\uni\3r\3r2sem\redes\aa2_p2p\aa2_p2p\main.cpp(117): warning C4101: 'receiveBuffer': variable local sin referencia
-e:\yosm\documents\uni\3r\3r2sem\redes\aa2_p2p\aa2_p2p\main.cpp(118): warning C4101: '_received': variable local sin referencia
-e:\yosm\documents\uni\3r\3r2sem\redes\aa2_p2p\aa2_p2p\main.cpp(230): warning C4101: 'tempint': variable local sin referencia
-e:\yosm\documents\uni\3r\3r2sem\redes\aa2_p2p\aa2_p2p\main.cpp(499): warning C4267: 'inicializando': conversión de 'size_t' a 'int'; posible pérdida de datos
-e:\yosm\documents\uni\3r\3r2sem\redes\aa2_p2p\aa2_p2p\main.cpp(597): warning C4267: 'inicializando': conversión de 'size_t' a 'int'; posible pérdida de datos
-e:\yosm\documents\uni\3r\3r2sem\redes\aa2_p2p\aa2_p2p\main.cpp(616): warning C4244: 'argumento': conversión de '::size_t' a 'float'; posible pérdida de datos
-e:\yosm\documents\uni\3r\3r2sem\redes\aa2_p2p\aa2_p2p\main.cpp(657): warning C4244: 'argumento': conversión de 'time_t' a 'unsigned int'; posible pérdida de datos
-  Generando código...
-e:\yosm\documents\uni\3r\3r2sem\redes\aa2_p2p\aa2_p2p\chronometer.h(143): warning C4715: 'sftools::Chronometer::getElapsedTime': no todas las rutas de acceso de control devuelven un valor
-  Omitiendo... (no se detectaron cambios relevantes)
-  scoreboard.cpp
-  AA2_P2P.vcxproj -> E:\Yosm\Documents\uni\3r\3r2sem\redes\AA2_P2P\x64\Debug\AA2_P2P.exe
-  AA2_P2P.vcxproj -> E:\Yosm\Documents\uni\3r\3r2sem\redes\AA2_P2P\x64\Debug\AA2_P2P.pdb (Partial PDB)
+d:\documentos\github\aa2_dani\aa2_p2p\aa2_p2p\circle.h(21): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
+d:\documentos\github\aa2_dani\aa2_p2p\aa2_p2p\circle.h(22): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
+d:\documentos\github\aa2_dani\aa2_p2p\aa2_p2p\circle.h(24): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
+d:\documentos\github\aa2_dani\aa2_p2p\aa2_p2p\circle.h(31): warning C4244: 'argumento': conversión de 'const float' a 'int'; posible pérdida de datos
+d:\documentos\github\aa2_dani\aa2_p2p\aa2_p2p\main.cpp(156): warning C4267: 'inicializando': conversión de 'size_t' a 'int'; posible pérdida de datos
+d:\documentos\github\aa2_dani\aa2_p2p\aa2_p2p\main.cpp(318): warning C4267: 'inicializando': conversión de 'size_t' a 'int'; posible pérdida de datos
+d:\documentos\github\aa2_dani\aa2_p2p\aa2_p2p\main.cpp(126): warning C4101: 'receiveBuffer': variable local sin referencia
+d:\documentos\github\aa2_dani\aa2_p2p\aa2_p2p\main.cpp(127): warning C4101: '_received': variable local sin referencia
+d:\documentos\github\aa2_dani\aa2_p2p\aa2_p2p\main.cpp(239): warning C4101: 'tempint': variable local sin referencia
+d:\documentos\github\aa2_dani\aa2_p2p\aa2_p2p\main.cpp(514): warning C4267: 'inicializando': conversión de 'size_t' a 'int'; posible pérdida de datos
+d:\documentos\github\aa2_dani\aa2_p2p\aa2_p2p\main.cpp(618): warning C4267: 'inicializando': conversión de 'size_t' a 'int'; posible pérdida de datos
+d:\documentos\github\aa2_dani\aa2_p2p\aa2_p2p\main.cpp(650): warning C4244: 'argumento': conversión de '::size_t' a 'float'; posible pérdida de datos
+d:\documentos\github\aa2_dani\aa2_p2p\aa2_p2p\main.cpp(691): warning C4244: 'argumento': conversión de 'time_t' a 'unsigned int'; posible pérdida de datos
+d:\documentos\github\aa2_dani\aa2_p2p\aa2_p2p\chronometer.h(143): warning C4715: 'sftools::Chronometer::getElapsedTime': no todas las rutas de acceso de control devuelven un valor
+  AA2_P2P.vcxproj -> D:\Documentos\GitHub\AA2_Dani\AA2_P2P\x64\Debug\AA2_P2P.exe
+  AA2_P2P.vcxproj -> D:\Documentos\GitHub\AA2_Dani\AA2_P2P\x64\Debug\AA2_P2P.pdb (Partial PDB)

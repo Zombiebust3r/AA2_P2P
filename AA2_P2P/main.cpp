@@ -6,6 +6,7 @@
 #include "Circle.h"
 #include "Chronometer.h"
 #define MAX_MENSAJES 25
+#define MAX_PLAYERS 4
 #define SET 0
 #define GET 1
 
@@ -15,6 +16,8 @@ bool imReady = false;
 std::vector<Player*> players;
 std::string myNick;
 int turn = 0;
+int turnCounter = 0;
+int connectedPlayers = 4;
 std::vector<std::string> aMensajes;
 std::mutex myMutex;
 bool connected = false;
@@ -58,6 +61,12 @@ enum commands { NOM, DEN, CON, INF, MSG, IMG, WRD, GUD, BAD, WNU, WIN, DIS, END,
 std::string wordToDraw;
 std::vector<std::string> wordsVector{ "coche", "robot", "camara", "pelota", "gafas", "libro", "piramide", "pistola", "gato", "caballo", "huevo", "gallina", "sombrero",
 "pokemon", "mario", "sonic", "pacman", "tetris" };
+
+void DisconnectFromAll() {
+	for (int disI = 0; disI < players.size(); disI++) {
+		players[disI]->socket->disconnect();
+	}
+}
 
 std::string PickWord() { //elige palabra random de la lista
 	std::string wordPicked = "platano"; //default
@@ -243,6 +252,7 @@ void receiveFunction(sf::TcpSocket* socket, bool* _connected) {
 							break;
 						case commands::WRD:
 							packet >> str;
+							wordToDraw = str;
 							addMessage("TE TOCA DIBUJAR");
 							addMessage("LA PALABRA QUE DEBES DIBUJAR ES: " + str);
 							SetGetMode(0, Mode::DRAWING);
@@ -277,7 +287,7 @@ void receiveFunction(sf::TcpSocket* socket, bool* _connected) {
 							if (SetGetMode(GET, Mode::NOTHING) == Mode::WAITINGANSWERS) {									//PODEMOS PONER EN VEZ DE ESTO UNA VARIABLE BOOL yourTurn, SI ES TU TURNO ES TRUE SINO ES FALSE
 								//MANDAR LA PALABRA NUEVA AL SIGUIENTE QUE DEBE DIBUJAR Y AL RESTO (INCLUIDO A SI MISMO) EL NÚMERO DE LETRAS
 							}
-							else { SetGetMode(SET, Mode::NOTHING); turn = ((turn + 1) % (players.size())); }
+							else { SetGetMode(SET, Mode::NOTHING); turn = ((turn + 1) % (players.size())); turnCounter++; }
 							break;
 						case commands::END:
 							//mensaje indicando el ganador de la partida, indicando su nombre
@@ -291,7 +301,14 @@ void receiveFunction(sf::TcpSocket* socket, bool* _connected) {
 					}
 				}
 				else if (rSt == sf::Socket::Status::Disconnected && players[playersIndexFor]->connected) {
+					connectedPlayers--;
+					if (connectedPlayers <= 1) {	//SI HAY MENOS DE 2 JUGADORES SE DESCONECTA AL ÚLTIMO POR DEFECTO
+						DisconnectFromAll();
+						done = true;
+						connected = false;
+					}
 					int tempTurn = (turn + 1) % players.size();
+					turnCounter++;
 					players[playersIndexFor]->connected = false;
 					if (strcmp(players[tempTurn]->name.c_str(), myNick.c_str()) == 0 && strcmp(players[turn]->name.c_str(), players[playersIndexFor]->name.c_str()) == 0) {
 						wordToDraw = PickWord();
@@ -403,7 +420,7 @@ void blockeComunication() {
 		sf::Vector2i screenDimensions(800, 600);
 
 		sf::RenderWindow window;
-		window.create(sf::VideoMode(screenDimensions.x, screenDimensions.y), windowName);
+		window.create(sf::VideoMode(screenDimensions.x, screenDimensions.y), windowName, sf::Style::Titlebar | sf::Style::Close);
 
 		//DRAWING WINDOW:
 		sf::RenderWindow drawingWindow;
@@ -441,7 +458,7 @@ void blockeComunication() {
 		separator.setPosition(0, 550);
 		
 		//window is open
-		while (window.isOpen() && drawingWindow.isOpen())
+		while (window.isOpen() && drawingWindow.isOpen() && !done)
 		{
 			sf::Time time = chrono;
 			sf::Event evento;
@@ -459,15 +476,12 @@ void blockeComunication() {
 					exitMessage = " >exit";
 					packet << commands::MSG << exitMessage;
 					socket.send(packet);
+					DisconnectFromAll();
 					window.close();
 					drawingWindow.close();
 					break;
 				case sf::Event::KeyPressed:
-					if (evento.key.code == sf::Keyboard::Escape) {
-						window.close();
-						drawingWindow.close();
-					}
-					else if (evento.key.code == sf::Keyboard::Return) //envia mensaje
+					if (evento.key.code == sf::Keyboard::Return) //envia mensaje
 					{
 						sf::Packet packet;
 						packet << commands::MSG << myNick << (" >" + mensaje);
@@ -479,6 +493,7 @@ void blockeComunication() {
 							//addMessage("YOU DISCONNECTED FROM CHAT");
 							connected = false;
 							done = true;
+							DisconnectFromAll();
 							window.close();
 							drawingWindow.close();
 						}
@@ -579,33 +594,52 @@ void blockeComunication() {
 				//ENVIAR TIME UP CON COMANDO TIM.
 				std::cout << "turn done";
 				turn = ((turn + 1) % (players.size()));
-				sf::Packet newPacket;
-				newPacket << commands::TIM;
-				//socket.send(newPacket);	//mandar al resto
-				SendToRest(newPacket);
-				for (int h = 0; h < players.size(); h++) {
-					players[h]->answered = false;
-				}
-				//MANDARSE A SI MISMO LA EL NÚMERO DE LETRAS Y SETEARSE COMO WAITING
-				wordToDraw = PickWord();
-				sf::Packet wordPacket;
-				wordPacket << commands::WRD;
-				wordPacket << wordToDraw;
-				players[turn]->socket->send(wordPacket);
-				sf::Packet wordNumberPacket;
-
-				int wordSize = wordToDraw.size();
-				wordNumberPacket << commands::WNU << players[turn]->name << wordSize;
-				for (int i = 0; i < players.size(); i++) {
-					if (i != turn && (strcmp(players[i]->name.c_str(), myNick.c_str()) != 0)) {
-						players[i]->socket->send(wordNumberPacket);
+				turnCounter++;
+				if (turnCounter < 3 * MAX_PLAYERS) {
+					sf::Packet newPacket;
+					newPacket << commands::TIM;
+					//socket.send(newPacket);	//mandar al resto
+					SendToRest(newPacket);
+					for (int h = 0; h < players.size(); h++) {
+						players[h]->answered = false;
 					}
+					//MANDARSE A SI MISMO LA EL NÚMERO DE LETRAS Y SETEARSE COMO WAITING
+					wordToDraw = PickWord();
+					sf::Packet wordPacket;
+					wordPacket << commands::WRD;
+					wordPacket << wordToDraw;
+					while (!players[turn]->connected) {
+						turn = ((turn + 1) % (players.size()));
+					}
+					players[turn]->socket->send(wordPacket);
+					wordPacket.clear();
+					sf::Packet wordNumberPacket;
+
+					int wordSize = wordToDraw.size();
+					wordNumberPacket << commands::WNU << players[turn]->name << wordSize;
+					for (int i = 0; i < players.size(); i++) {
+						if (i != turn && (strcmp(players[i]->name.c_str(), myNick.c_str()) != 0) && players[i]->connected) {
+							players[i]->socket->send(wordNumberPacket);
+						}
+					}
+					addMessage("EL USUARIO '" + players[turn]->name + "' VA A DIBUJAR");
+					addMessage("LA PALABRA CONTIENE " + std::to_string(wordSize) + " LETRAS");
+					SetGetMode(0, Mode::WAITING);
+					wordNumberPacket.clear();
+					chrono.reset(false);
+					chrono.pause();
 				}
-				addMessage("EL USUARIO '" + players[turn]->name + "' VA A DIBUJAR");
-				addMessage("LA PALABRA CONTIENE " + std::to_string(wordSize) + " LETRAS");
-				SetGetMode(0, Mode::WAITING);
-				chrono.reset(false);
-				chrono.pause();
+				else { //MANDAR END
+					sf::Packet endPacket;
+					endPacket << commands::END;
+					int bigger = -1;
+					std::string winner = "";
+					for (int finalI = 0; finalI < players.size(); finalI++) {
+						if (players[finalI]->score > bigger) { bigger = players[finalI]->score; winner = players[finalI]->name; }
+					}
+					endPacket << winner;
+					addMessage("EL USUARIO '" + winner + "' HA GANADO LA PARTIDA. GG");
+				}
 			}
 			
 	//Draw -------------------------------------------------------------------------------------------------------------------------------
