@@ -144,14 +144,15 @@ void receiveFunction(sf::TcpSocket* socket, bool* _connected) {
 										addMessage("TE TOCA DIBUJAR");
 										addMessage("LA PALABRA QUE DEBES DIBUJAR ES: " + wordToDraw);
 										SetGetMode(SET, Mode::DRAWING);
+										int wordSize = wordToDraw.size();
 										sf::Packet wordNumberPacket1;
-										wordNumberPacket1 << commands::WNU << players[turn]->name << wordToDraw.length();
+										wordNumberPacket1 << commands::WNU << players[turn]->name << wordSize;
 										players[1]->socket->send(wordNumberPacket1);
 										sf::Packet wordNumberPacket2;
-										wordNumberPacket2 << commands::WNU << players[turn]->name << wordToDraw.length();
+										wordNumberPacket2 << commands::WNU << players[turn]->name << wordSize;
 										players[2]->socket->send(wordNumberPacket2);
 										sf::Packet wordNumberPacket3;
-										wordNumberPacket3 << commands::WNU << players[turn]->name << wordToDraw.length();
+										wordNumberPacket3 << commands::WNU << players[turn]->name << wordSize;
 										players[3]->socket->send(wordNumberPacket3);
 									}
 								}
@@ -180,7 +181,10 @@ void receiveFunction(sf::TcpSocket* socket, bool* _connected) {
 							packet >> str >> str2;
 							if (SetGetMode(GET, Mode::NOTHING) == Mode::WAITINGANSWERS) {			//Si estoy dibujando (mirar mi estado) tengo que verificar si la palabra corresponde con la que dibujo. Mando lo correspondiente si acierta o no.
 								//COMPARAR PALABRA CON LA Mía
+								
+								std::cout << (" >" + wordToDraw) << " | vs | " << str2 << " | " << players[playersIndexFor]->answered << std::endl;
 								if (strcmp((" >" + wordToDraw).c_str(), str2.c_str()) == 0 && !players[playersIndexFor]->answered) { //ACERTADA
+									std::cout << "acertado" << std::endl;
 									//RESEND DE GUD
 									sf::Packet confirmPacket;
 									confirmPacket << commands::GUD;
@@ -285,6 +289,33 @@ void receiveFunction(sf::TcpSocket* socket, bool* _connected) {
 
 						}
 					}
+				}
+				else if (rSt == sf::Socket::Status::Disconnected && players[playersIndexFor]->connected) {
+					int tempTurn = (turn + 1) % players.size();
+					players[playersIndexFor]->connected = false;
+					if (strcmp(players[tempTurn]->name.c_str(), myNick.c_str()) == 0 && strcmp(players[turn]->name.c_str(), players[playersIndexFor]->name.c_str()) == 0) {
+						wordToDraw = PickWord();
+						addMessage("TE TOCA DIBUJAR");
+						addMessage("LA PALABRA QUE DEBES DIBUJAR ES: " + wordToDraw);
+						SetGetMode(SET, Mode::DRAWING);
+						int wordSize = wordToDraw.size();
+						sf::Packet wordNumberPacket1;
+						int tempTurn2 = (turn + 2) % players.size();
+						wordNumberPacket1 << commands::WNU << players[tempTurn]->name << wordSize;
+						players[tempTurn2]->socket->send(wordNumberPacket1);
+						tempTurn2 = (turn + 3) % players.size();
+						sf::Packet wordNumberPacket2;
+						wordNumberPacket2 << commands::WNU << players[tempTurn]->name << wordSize;
+						players[tempTurn2]->socket->send(wordNumberPacket2);
+						tempTurn2 = (turn + 4) % players.size();
+						sf::Packet wordNumberPacket3;
+						wordNumberPacket3 << commands::WNU << players[tempTurn]->name << wordSize;
+						players[tempTurn2]->socket->send(wordNumberPacket3);
+						
+					}
+					turn = tempTurn;
+					//players.erase(players.begin() + playersIndexFor);
+					
 				}
 			}
 		}
@@ -439,7 +470,7 @@ void blockeComunication() {
 					else if (evento.key.code == sf::Keyboard::Return) //envia mensaje
 					{
 						sf::Packet packet;
-						packet << commands::MSG << myNick << (" >" + mensaje).c_str();
+						packet << commands::MSG << myNick << (" >" + mensaje);
 						SendToRest(packet);
 						addMessage(myNick + " >" + mensaje);
 						//addMessage(mensaje);
@@ -465,13 +496,14 @@ void blockeComunication() {
 										addMessage("LA PALABRA QUE DEBES DIBUJAR ES: " + wordToDraw);
 										SetGetMode(SET, Mode::DRAWING);
 										sf::Packet wordNumberPacket1;
-										wordNumberPacket1 << commands::WNU << players[turn]->name << wordToDraw.length();
+										int wordSize = wordToDraw.size();
+										wordNumberPacket1 << commands::WNU << players[turn]->name << wordSize;
 										players[1]->socket->send(wordNumberPacket1);
 										sf::Packet wordNumberPacket2;
-										wordNumberPacket2 << commands::WNU << players[turn]->name << wordToDraw.length();
+										wordNumberPacket2 << commands::WNU << players[turn]->name << wordSize;
 										players[2]->socket->send(wordNumberPacket2);
 										sf::Packet wordNumberPacket3;
-										wordNumberPacket3 << commands::WNU << players[turn]->name << wordToDraw.length();
+										wordNumberPacket3 << commands::WNU << players[turn]->name << wordSize;
 										players[3]->socket->send(wordNumberPacket3);
 									}
 								}
@@ -561,14 +593,16 @@ void blockeComunication() {
 				wordPacket << wordToDraw;
 				players[turn]->socket->send(wordPacket);
 				sf::Packet wordNumberPacket;
-				wordNumberPacket << commands::WNU << players[turn]->name << wordToDraw.length();
+
+				int wordSize = wordToDraw.size();
+				wordNumberPacket << commands::WNU << players[turn]->name << wordSize;
 				for (int i = 0; i < players.size(); i++) {
 					if (i != turn && (strcmp(players[i]->name.c_str(), myNick.c_str()) != 0)) {
 						players[i]->socket->send(wordNumberPacket);
 					}
 				}
 				addMessage("EL USUARIO '" + players[turn]->name + "' VA A DIBUJAR");
-				addMessage("LA PALABRA CONTIENE " + std::to_string(wordToDraw.length()) + " LETRAS");
+				addMessage("LA PALABRA CONTIENE " + std::to_string(wordSize) + " LETRAS");
 				SetGetMode(0, Mode::WAITING);
 				chrono.reset(false);
 				chrono.pause();
@@ -736,6 +770,8 @@ void main() {
 				if (command == NOM) packet >> tempPlayer->name;
 			}
 			tempPlayer->socket = tempSock;
+			tempPlayer->answered = false;
+			tempPlayer->score = 0;
 			tempPlayer->socket->setBlocking(false);
 			players.push_back(tempPlayer);
 			std::cout << "Se ha conectado un nuevo peer " << tempSock->getRemotePort() << " "<< tempPlayer->name << std::endl;
@@ -743,7 +779,6 @@ void main() {
 
 		if (st == sf::Socket::Status::Done) {
 			connected = true;
-			system("pause");
 			blockeComunication();
 		}
 

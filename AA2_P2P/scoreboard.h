@@ -10,7 +10,7 @@ struct Player {
 	int score;
 	sf::TcpSocket* socket;
 	bool answered;
-	//bool ready;
+	bool connected = true;
 };
 struct Direction
 {
