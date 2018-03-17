@@ -9,6 +9,8 @@ struct Player {
 	std::string name;
 	int score;
 	sf::TcpSocket* socket;
+	bool answered;
+	//bool ready;
 };
 struct Direction
 {

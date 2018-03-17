@@ -9,7 +9,12 @@
 #define SET 0
 #define GET 1
 
+//READY
+int playersReady = 0;
+bool imReady = false;
 std::vector<Player*> players;
+std::string myNick;
+int turn = 0;
 std::vector<std::string> aMensajes;
 std::mutex myMutex;
 bool connected = false;
@@ -49,8 +54,28 @@ bool nameEntered = false;
 bool nameReply = false;
 enum commands { NOM, DEN, CON, INF, MSG, IMG, WRD, GUD, BAD, WNU, WIN, DIS, END, RNK, RDY, TIM};
 
+//WORDS
+std::string wordToDraw;
+std::vector<std::string> wordsVector{ "coche", "robot", "camara", "pelota", "gafas", "libro", "piramide", "pistola", "gato", "caballo", "huevo", "gallina", "sombrero",
+"pokemon", "mario", "sonic", "pacman", "tetris" };
+
+std::string PickWord() { //elige palabra random de la lista
+	std::string wordPicked = "platano"; //default
+	if (wordsVector.size() > 0) {
+		int randomPick = rand() % wordsVector.size();
+		wordPicked = wordsVector[randomPick];
+		wordsVector.erase(wordsVector.begin() + randomPick); //asiegura que no se repitan palabras, cuando no hayan mas devolveria platano que es el default
+	}
+	return wordPicked;
+}
+
 void SendToRest(sf::Packet pack) {
 	//Aquí mandamos la info a todos menos a ti mismo.
+	for (int i = 0; i < players.size(); i++) {
+		if ( (strcmp(players[i]->name.c_str(), myNick.c_str()) != 0) ) {
+			players[i]->socket->send(pack);
+		}
+	}
 }
 
 Mode SetGetMode(int setOrGet, Mode mode) {
@@ -92,119 +117,174 @@ void receiveFunction(sf::TcpSocket* socket, bool* _connected) {
 	char receiveBuffer[2000];
 	std::size_t _received;
 	while (*_connected) {
-		sf::Packet packet;
-		sf::Socket::Status rSt = socket->receive(packet);
-		if (rSt == sf::Socket::Status::Done/*_received > 0*/) {
+		for (int playersIndexFor = 0; playersIndexFor < players.size(); playersIndexFor++) {
+			if ((strcmp(players[playersIndexFor]->name.c_str(), myNick.c_str()) != 0)) {
+				sf::Packet packet;
+				sf::Socket::Status rSt = players[playersIndexFor]->socket->receive(packet);
+				if (rSt == sf::Socket::Status::Done/*_received > 0*/) {
 
-			std::string str;
-			std::string str2;
-			int integer;
-			int command;
-			int pixelsSize;
-			if (packet >> command) {
-				switch (command) {
-				case commands::RDY:																									//READY TODO
-					//CUANDO SE RECIBE SE FLAGUEA AL JUGADOR COMO READY EN EL STRUCT
-					//CUANDO TODOS SE HAN PUESTO A READY EMPIEZA LA PARTIDA: --> El primero de la lista debe decidir una palabra y mandar al resto un WNU con el número de letras. Esto empieza el ciclo de turnos.
-					break;
-				case commands::DEN:
-					std::cout << "The name is already in use" << std::endl;
-					nameReply = true;
-					break;
-				case commands::CON: 
-					std::cout << "Your name has been saved" << std::endl;
-					nameEntered = true;
-					nameReply = true;
-					break;
-				case commands::RNK: 
-					//para recibir le ranking
-					break;
-				case commands::INF:
-					//recibimos nombre y printamos que se ha conectado un user nuevo
-					packet >> str;
-					addMessage("EL USUARIO: '" + str + "' SE HA UNIDO A LA PARTIDA, (USA EL COMANDO READY PARA EMPEZAR)");
-					break;
-				case commands::MSG:
-					packet >> str >> str2;																
-					if (SetGetMode(GET, Mode::NOTHING) == Mode::WAITINGANSWERS) {			//Si estoy dibujando (mirar mi estado) tengo que verificar si la palabra corresponde con la que dibujo. Mando lo correspondiente si acierta o no.
-						//COMPARAR PALABRA CON LA Mía
-						//AÑADIR MENSAJE CORRESPONDIENTE
+					std::string str;
+					std::string str2;
+					std::string tempString;
+					int integer;
+					int command;
+					int pixelsSize;
+					if (packet >> command) {
+						switch (command) {
+						case commands::RDY:																									//READY TODO
+							//CUANDO SE RECIBE SE FLAGUEA AL JUGADOR COMO READY EN EL STRUCT
+							packet >> tempString;
+							addMessage("El jugador " + tempString + " esta ready.");
+							playersReady++;
+							if (playersReady == 4) {
+								//Decidir quién empieza. Si empiezo yo mando el número de letras
+								for (int i = 0; i < players.size(); i++) {
+									if ((strcmp(players[i]->name.c_str(), myNick.c_str()) == 0) && i == 0) {
+										wordToDraw = PickWord();
+										addMessage("TE TOCA DIBUJAR");
+										addMessage("LA PALABRA QUE DEBES DIBUJAR ES: " + wordToDraw);
+										SetGetMode(SET, Mode::DRAWING);
+										sf::Packet wordNumberPacket1;
+										wordNumberPacket1 << commands::WNU << players[turn]->name << wordToDraw.length();
+										players[1]->socket->send(wordNumberPacket1);
+										sf::Packet wordNumberPacket2;
+										wordNumberPacket2 << commands::WNU << players[turn]->name << wordToDraw.length();
+										players[2]->socket->send(wordNumberPacket2);
+										sf::Packet wordNumberPacket3;
+										wordNumberPacket3 << commands::WNU << players[turn]->name << wordToDraw.length();
+										players[3]->socket->send(wordNumberPacket3);
+									}
+								}
+
+							}
+							//CUANDO TODOS SE HAN PUESTO A READY EMPIEZA LA PARTIDA: --> El primero de la lista debe decidir una palabra y mandar al resto un WNU con el número de letras. Esto empieza el ciclo de turnos.
+							break;
+						case commands::DEN:
+							std::cout << "The name is already in use" << std::endl;
+							nameReply = true;
+							break;
+						case commands::CON:
+							std::cout << "Your name has been saved" << std::endl;
+							nameEntered = true;
+							nameReply = true;
+							break;
+						case commands::RNK:
+							//para recibir le ranking
+							break;
+						case commands::INF:
+							//recibimos nombre y printamos que se ha conectado un user nuevo
+							packet >> str;
+							addMessage("EL USUARIO: '" + str + "' SE HA UNIDO A LA PARTIDA, (USA EL COMANDO READY PARA EMPEZAR)");
+							break;
+						case commands::MSG:
+							packet >> str >> str2;
+							if (SetGetMode(GET, Mode::NOTHING) == Mode::WAITINGANSWERS) {			//Si estoy dibujando (mirar mi estado) tengo que verificar si la palabra corresponde con la que dibujo. Mando lo correspondiente si acierta o no.
+								//COMPARAR PALABRA CON LA Mía
+								if (strcmp((" >" + wordToDraw).c_str(), str2.c_str()) == 0 && !players[playersIndexFor]->answered) { //ACERTADA
+									//RESEND DE GUD
+									sf::Packet confirmPacket;
+									confirmPacket << commands::GUD;
+									players[playersIndexFor]->socket->send(confirmPacket);
+									addMessage(str + str2);
+									//WIN
+									players[playersIndexFor]->score += 1;
+									players[playersIndexFor]->answered = true;
+									sf::Packet winPacket;
+									winPacket << commands::WIN << players[playersIndexFor]->name << players[playersIndexFor]->score;
+									for (int j = 0; j < players.size(); j++) {
+										if (strcmp(players[playersIndexFor]->name.c_str(), players[j]->name.c_str()) != 0 && strcmp(myNick.c_str(), players[j]->name.c_str()) != 0) {	//Mandamos el packet a los otros dos
+											players[j]->socket->send(winPacket);
+										}
+									}
+									addMessage("EL USUARIO '" + str + "' HA ACERTADO. TIENE " + std::to_string(players[playersIndexFor]->score) + " PUNTOS");
+								}
+								else {
+									//RESEND DE BAD
+									sf::Packet denyPacket;
+									denyPacket << commands::BAD;
+									players[playersIndexFor]->socket->send(denyPacket);
+									addMessage(str + str2);
+								}
+								//AÑADIR MENSAJE CORRESPONDIENTE
+								
+							}
+							else { addMessage(str + str2); }
+
+							break;
+						case commands::IMG:
+							//recibir la imagen para printarla en window
+							//PROCESS IMAGE:
+							firstTimeScreenshot = true;
+							std::cout << "IMAGE RECEIVED" << std::endl;
+							int imgWidth, imgHeight;
+							packet >> imgWidth;
+							std::cout << "WIDTH" << imgWidth << std::endl;
+							packet >> imgHeight;
+							std::cout << "HEIGHT" << imgHeight << std::endl;
+							pixelsSize = imgWidth * imgHeight * 4;
+							for (int i = 0; i < pixelsSize; i++) {
+								int tempint;
+								sf::Uint8 tempUint;
+								packet >> tempUint;
+								pixels[i] = tempUint;
+								//std::cout << int(pixels[i]) << ", " << std::endl;
+							}
+							std::cout << "IMAGE PASSED TO ARRAY" << std::endl;
+							//CREATE IMAGE THEN TEXTURE THEN SPRITE
+							screenshotImage.create(imgWidth, imgHeight, pixels);
+							std::cout << "IMAGE CREATED FROM ARRAY" << std::endl;
+
+							SetGetMode(0, Mode::ANSWERING);
+							addMessage("COMIENZA EL TIEMPO DE ADIVINAR");
+							break;
+						case commands::WRD:
+							packet >> str;
+							addMessage("TE TOCA DIBUJAR");
+							addMessage("LA PALABRA QUE DEBES DIBUJAR ES: " + str);
+							SetGetMode(0, Mode::DRAWING);
+							break;
+						case commands::WNU:
+							packet >> str;
+							packet >> integer;
+							addMessage("EL USUARIO '" + str + "' VA A DIBUJAR");
+							addMessage("LA PALABRA CONTIENE " + std::to_string(integer) + " LETRAS");
+							SetGetMode(0, Mode::WAITING);
+							break;
+						case commands::BAD:
+							addMessage("LA PALABRA QUE HAS INTRODUCIDO ES INCORRECTA");
+							break;
+						case commands::GUD:
+							addMessage("LA PALABRA QUE HAS INTRODUCIDO ES CORRECTA");
+							break;
+						case commands::WIN:
+							packet >> str;
+							packet >> integer;
+
+							addMessage("EL USUARIO '" + str + "' HA ACERTADO. TIENE " + std::to_string(integer) + " PUNTOS");
+							//actualizar scoreboard local, actualizando la puntuacion del jugador que ha acertado
+							break;
+						case commands::DIS:
+							packet >> str;
+							addMessage("EL USUARIO: '" + str + "' SE HA DESCONECTADO");
+							done = true;
+							break;
+						case commands::TIM:
+							addMessage("SE HA ACABADO EL TIEMPO DE ADIVINAR");
+							if (SetGetMode(GET, Mode::NOTHING) == Mode::WAITINGANSWERS) {									//PODEMOS PONER EN VEZ DE ESTO UNA VARIABLE BOOL yourTurn, SI ES TU TURNO ES TRUE SINO ES FALSE
+								//MANDAR LA PALABRA NUEVA AL SIGUIENTE QUE DEBE DIBUJAR Y AL RESTO (INCLUIDO A SI MISMO) EL NÚMERO DE LETRAS
+							}
+							else { SetGetMode(SET, Mode::NOTHING); turn = ((turn + 1) % (players.size())); }
+							break;
+						case commands::END:
+							//mensaje indicando el ganador de la partida, indicando su nombre
+							packet >> str;
+							addMessage("EL USUARIO '" + str + "' HA GANADO LA PARTIDA. GG");
+							//desconectar
+							done = true;
+							break;
+
+						}
 					}
-					else { addMessage(str + str2); }
-
-					break;
-				case commands::IMG:
-					//recibir la imagen para printarla en window
-					//PROCESS IMAGE:
-					firstTimeScreenshot = true;
-					std::cout << "IMAGE RECEIVED" << std::endl;
-					int imgWidth, imgHeight;
-					packet >> imgWidth;
-					std::cout << "WIDTH" << imgWidth << std::endl;
-					packet >> imgHeight;
-					std::cout << "HEIGHT" << imgHeight << std::endl;
-					pixelsSize = imgWidth * imgHeight * 4;
-					for (int i = 0; i < pixelsSize; i++) {
-						int tempint;
-						sf::Uint8 tempUint;
-						packet >> tempUint;
-						pixels[i] = tempUint;
-						//std::cout << int(pixels[i]) << ", " << std::endl;
-					}
-					std::cout << "IMAGE PASSED TO ARRAY" << std::endl;
-					//CREATE IMAGE THEN TEXTURE THEN SPRITE
-					screenshotImage.create(imgWidth, imgHeight, pixels);
-					std::cout << "IMAGE CREATED FROM ARRAY" << std::endl;
-
-					SetGetMode(0, Mode::ANSWERING);
-					addMessage("COMIENZA EL TIEMPO DE ADIVINAR");
-					break;
-				case commands::WRD:
-					packet >> str;
-					addMessage("TE TOCA DIBUJAR");
-					addMessage("LA PALABRA QUE DEBES DIBUJAR ES: " + str);
-					SetGetMode(0, Mode::DRAWING);
-					break;
-				case commands::WNU:
-					packet >> str;
-					packet >> integer;
-					addMessage("EL USUARIO '" + str + "' VA A DIBUJAR");
-					addMessage("LA PALABRA CONTIENE " + std::to_string(integer) + " LETRAS");
-					SetGetMode(0, Mode::WAITING);
-					break;
-				case commands::BAD:
-					addMessage("LA PALABRA QUE HAS INTRODUCIDO ES INCORRECTA");
-					break;
-				case commands::GUD:
-					addMessage("LA PALABRA QUE HAS INTRODUCIDO ES CORRECTA");
-					break;
-				case commands::WIN:
-					packet >> str;
-					packet >> integer;
-
-					addMessage("EL USUARIO '" + str + "' HA ACERTADO. TIENE " + std::to_string(integer) + " PUNTOS");
-					//actualizar scoreboard local, actualizando la puntuacion del jugador que ha acertado
-					break;
-				case commands::DIS:
-					packet >> str;
-					addMessage("EL USUARIO: '" + str + "' SE HA DESCONECTADO");
-					done = true;
-					break;
-				case commands::TIM:
-					addMessage("SE HA ACABADO EL TIEMPO DE ADIVINAR");
-					if (SetGetMode(GET, Mode::NOTHING) == Mode::WAITINGANSWERS) {									//PODEMOS PONER EN VEZ DE ESTO UNA VARIABLE BOOL yourTurn, SI ES TU TURNO ES TRUE SINO ES FALSE
-						//MANDAR LA PALABRA NUEVA AL SIGUIENTE QUE DEBE DIBUJAR Y AL RESTO (INCLUIDO A SI MISMO) EL NÚMERO DE LETRAS
-					}
-					else { SetGetMode(SET, Mode::NOTHING); }
-					break;
-				case commands::END:
-					//mensaje indicando el ganador de la partida, indicando su nombre
-					packet >> str;
-					addMessage("EL USUARIO '" + str + "' HA GANADO LA PARTIDA. GG");
-					//desconectar
-					done = true;
-					break;
-
 				}
 			}
 		}
@@ -215,77 +295,79 @@ void blockeComunication() {
 	
 	while (!done && (st == sf::Socket::Status::Done) && connected)
 	{
-		Player* ownPlayer = new Player;
-		//name enter phase
-		while (!nameEntered) {
-			//hacer que el usuario escriba el nombre
-			std::string namePlayer;
-			std::cout << "Please enter your name: ";
-			std::cin >> namePlayer;
-			//enviar nombre
-			sf::Packet newP;
-			newP << commands::NOM << namePlayer;
-			socket.send(newP);
+		//Player* ownPlayer = new Player;
+		////name enter phase
+		//while (!nameEntered) {
+		//	//hacer que el usuario escriba el nombre
+		//	std::string namePlayer;
+		//	std::cout << "Please enter your name: ";
+		//	std::cin >> namePlayer;
+		//	//enviar nombre
+		//	sf::Packet newP;
+		//	newP << commands::NOM << namePlayer;
+		//	socket.send(newP);
+		//
+		//	sf::Packet receivePacket;
+		//	int command;
+		//	st = socket.receive(receivePacket);
+		//	if (st == sf::Socket::Status::Done) {
+		//
+		//		if (receivePacket >> command) {
+		//			switch (command) {
+		//			case commands::DEN:
+		//				std::cout << "The name is already in use" << std::endl;
+		//				nameReply = true;
+		//				break;
+		//			case commands::CON:
+		//				std::cout << "Your name has been saved" << std::endl;
+		//				nameEntered = true;
+		//				nameReply = true;
+		//				break;
+		//			}
+		//		}
+		//	}
+		//
+		//	nameReply = false;
+		//	while(!nameReply){} //espera a respuesta de server para cambiar este bool
+		//}
+		////guardar otros peers
+		//sf::Packet packet;
+		//socket.receive(packet);
+		//int numplayers;
+		//packet >> numplayers;
+		//std::cout << numplayers << " jugadores" << std::endl;
+		//for (int i = 0; i < numplayers; i++) {
+		//	std::cout << "entro en este bonito for" << std::endl;
+		//	sf::Packet newPacket;
+		//	socket.receive(newPacket);
+		//	int command;
+		//	packet >> command;
+		//	std::cout << "He recibido un paquete de jugador con el comando: " << command;
+		//	if (command == INF) {
+		//		switch (command) {
+		//		case commands::INF:
+		//			Player* tempPlayer = new Player;
+		//
+		//			Direction tempDir;
+		//			sf::TcpSocket* tempSock = new sf::TcpSocket;
+		//			packet >> tempPlayer->name;
+		//			packet >> tempDir.ip;
+		//			packet >> tempDir.port;
+		//			std::cout << "Player #" << i << " IP: " << tempDir.ip << " PORT: " << tempDir.port << std::endl;
+		//
+		//			tempSock->connect(tempDir.ip, tempDir.port, sf::seconds(5.f));
+		//			tempPlayer->socket = tempSock;
+		//
+		//			players.push_back(tempPlayer);
+		//
+		//			break;
+		//		}
+		//	}
+		//}
+		////autoguardarme
+		//players.push_back(ownPlayer);
 
-			sf::Packet receivePacket;
-			int command;
-			st = socket.receive(receivePacket);
-			if (st == sf::Socket::Status::Done) {
-
-				if (receivePacket >> command) {
-					switch (command) {
-					case commands::DEN:
-						std::cout << "The name is already in use" << std::endl;
-						nameReply = true;
-						break;
-					case commands::CON:
-						std::cout << "Your name has been saved" << std::endl;
-						nameEntered = true;
-						nameReply = true;
-						break;
-					}
-				}
-			}
-
-			nameReply = false;
-			while(!nameReply){} //espera a respuesta de server para cambiar este bool
-		}
-		//guardar otros peers
-		sf::Packet packet;
-		socket.receive(packet);
-		int numplayers;
-		packet >> numplayers;
-		std::cout << numplayers << " jugadores" << std::endl;
-		for (int i = 0; i < numplayers; i++) {
-			std::cout << "entro en este bonito for" << std::endl;
-			sf::Packet newPacket;
-			socket.receive(newPacket);
-			int command;
-			packet >> command;
-			std::cout << "He recibido un paquete de jugador con el comando: " << command;
-			if (command == INF) {
-				switch (command) {
-				case commands::INF:
-					Player* tempPlayer = new Player;
-
-					Direction tempDir;
-					sf::TcpSocket* tempSock = new sf::TcpSocket;
-					packet >> tempPlayer->name;
-					packet >> tempDir.ip;
-					packet >> tempDir.port;
-					std::cout << "Player #" << i << " IP: " << tempDir.ip << " PORT: " << tempDir.port << std::endl;
-
-					tempSock->connect(tempDir.ip, tempDir.port, sf::seconds(5.f));
-					tempPlayer->socket = tempSock;
-
-					players.push_back(tempPlayer);
-
-					break;
-				}
-			}
-		}
-		//autoguardarme
-		players.push_back(ownPlayer);
+		receiveThread = std::thread(receiveFunction, &socket, &connected);
 
 		sf::Vector2i screenDimensions(800, 600);
 
@@ -357,8 +439,9 @@ void blockeComunication() {
 					else if (evento.key.code == sf::Keyboard::Return) //envia mensaje
 					{
 						sf::Packet packet;
-						packet << commands::MSG << (" >" + mensaje).c_str();
-						sf::Socket::Status tempSt = socket.send(packet);
+						packet << commands::MSG << myNick << (" >" + mensaje).c_str();
+						SendToRest(packet);
+						addMessage(myNick + " >" + mensaje);
 						//addMessage(mensaje);
 						if (strcmp(mensaje.c_str(), "exit") == 0) {
 							std::cout << "EXIT" << std::endl;
@@ -370,8 +453,30 @@ void blockeComunication() {
 						}
 						else if (strcmp(mensaje.c_str(), "ready") == 0) {
 							sf::Packet newPacket;
-							newPacket << commands::RDY;
-							socket.send(newPacket);																				//MANDAR A TODOS
+							newPacket << commands::RDY << myNick;
+							SendToRest(newPacket);																				//MANDAR A TODOS
+							playersReady++;
+							if (playersReady == 4) {
+								//Decidir quién empieza. Si empiezo yo mando el número de letras
+								for (int i = 0; i < players.size(); i++) {
+									if ((strcmp(players[i]->name.c_str(), myNick.c_str()) == 0) && i == 0) {
+										wordToDraw = PickWord();
+										addMessage("TE TOCA DIBUJAR");
+										addMessage("LA PALABRA QUE DEBES DIBUJAR ES: " + wordToDraw);
+										SetGetMode(SET, Mode::DRAWING);
+										sf::Packet wordNumberPacket1;
+										wordNumberPacket1 << commands::WNU << players[turn]->name << wordToDraw.length();
+										players[1]->socket->send(wordNumberPacket1);
+										sf::Packet wordNumberPacket2;
+										wordNumberPacket2 << commands::WNU << players[turn]->name << wordToDraw.length();
+										players[2]->socket->send(wordNumberPacket2);
+										sf::Packet wordNumberPacket3;
+										wordNumberPacket3 << commands::WNU << players[turn]->name << wordToDraw.length();
+										players[3]->socket->send(wordNumberPacket3);
+									}
+								}
+
+							}
 						}
 						mensaje = "";
 					}
@@ -432,7 +537,8 @@ void blockeComunication() {
 				screenshotSprite.setPosition(0, 0);
 				//SEND IMAGE
 				std::cout << "IMAGE SENT AFTER DRAWING" << std::endl;
-				socket.send(imagePacket);																													//MANDAR A LOS OTROS 3 LA IMAGEN EN VEZ DE AL SERVIDOR
+				//socket.send(imagePacket);																													//MANDAR A LOS OTROS 3 LA IMAGEN EN VEZ DE AL SERVIDOR
+				SendToRest(imagePacket);
 				SetGetMode(0, Mode::WAITINGANSWERS);
 				addMessage("SE HA ACABADO EL TIEMPO DE DIBUJAR");
 				std::cout << "set waiting answers";
@@ -440,9 +546,30 @@ void blockeComunication() {
 			else if (doneDrawing && SetGetMode(GET, Mode::NOTHING) == Mode::WAITINGANSWERS && int(time.asSeconds()) >= timeToDraw) {
 				//ENVIAR TIME UP CON COMANDO TIM.
 				std::cout << "turn done";
+				turn = ((turn + 1) % (players.size()));
 				sf::Packet newPacket;
 				newPacket << commands::TIM;
-				socket.send(newPacket);
+				//socket.send(newPacket);	//mandar al resto
+				SendToRest(newPacket);
+				for (int h = 0; h < players.size(); h++) {
+					players[h]->answered = false;
+				}
+				//MANDARSE A SI MISMO LA EL NÚMERO DE LETRAS Y SETEARSE COMO WAITING
+				wordToDraw = PickWord();
+				sf::Packet wordPacket;
+				wordPacket << commands::WRD;
+				wordPacket << wordToDraw;
+				players[turn]->socket->send(wordPacket);
+				sf::Packet wordNumberPacket;
+				wordNumberPacket << commands::WNU << players[turn]->name << wordToDraw.length();
+				for (int i = 0; i < players.size(); i++) {
+					if (i != turn && (strcmp(players[i]->name.c_str(), myNick.c_str()) != 0)) {
+						players[i]->socket->send(wordNumberPacket);
+					}
+				}
+				addMessage("EL USUARIO '" + players[turn]->name + "' VA A DIBUJAR");
+				addMessage("LA PALABRA CONTIENE " + std::to_string(wordToDraw.length()) + " LETRAS");
+				SetGetMode(0, Mode::WAITING);
 				chrono.reset(false);
 				chrono.pause();
 			}
@@ -548,6 +675,7 @@ void main() {
 				case commands::CON:
 					std::cout << "Your name has been saved" << std::endl;
 					ownPlayer->name = namePlayer;
+					myNick = namePlayer;
 					nameEntered = true;
 					break;
 				}
@@ -581,6 +709,7 @@ void main() {
 				newPacket << commands::NOM << ownPlayer->name;
 				tempSock->send(newPacket);
 				tempPlayer->socket = tempSock;
+				tempPlayer->socket->setBlocking(false);
 
 				players.push_back(tempPlayer);
 			}
@@ -607,6 +736,7 @@ void main() {
 				if (command == NOM) packet >> tempPlayer->name;
 			}
 			tempPlayer->socket = tempSock;
+			tempPlayer->socket->setBlocking(false);
 			players.push_back(tempPlayer);
 			std::cout << "Se ha conectado un nuevo peer " << tempSock->getRemotePort() << " "<< tempPlayer->name << std::endl;
 		}

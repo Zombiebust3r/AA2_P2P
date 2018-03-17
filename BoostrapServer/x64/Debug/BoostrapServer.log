@@ -1,4 +1,2 @@
-﻿  main.cpp
-c:\users\dpeco\documents\github\aa2_p2p\boostrapserver\main.cpp(117): warning C4129: ' ': unrecognized character escape sequence
-  BoostrapServer.vcxproj -> C:\Users\dpeco\Documents\GitHub\AA2_P2P\x64\Debug\BoostrapServer.exe
-  BoostrapServer.vcxproj -> C:\Users\dpeco\Documents\GitHub\AA2_P2P\x64\Debug\BoostrapServer.pdb (Partial PDB)
+﻿  BoostrapServer.vcxproj -> D:\Documentos\GitHub\AA2_Dani\AA2_P2P\x64\Debug\BoostrapServer.exe
+  BoostrapServer.vcxproj -> D:\Documentos\GitHub\AA2_Dani\AA2_P2P\x64\Debug\BoostrapServer.pdb (Partial PDB)
